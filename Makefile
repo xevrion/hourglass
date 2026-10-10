@@ -1,20 +1,23 @@
 CXX ?= g++
 CXXFLAGS ?= -std=c++17 -O2 -Wall -Wextra -Icore
 
-.PHONY: test preview build flash clean
+CORE := core/sand.cpp core/session.cpp core/font.cpp core/scene.cpp
+HDRS := $(wildcard core/*.hpp)
+TESTS := host/test_sand host/test_session host/test_scene
 
-test: host/test_sand
-	./host/test_sand
+.PHONY: test sim build flash clean
 
-host/test_sand: host/test_sand.cpp core/sand.cpp core/sand.hpp
-	$(CXX) $(CXXFLAGS) host/test_sand.cpp core/sand.cpp -o $@
+test: $(TESTS)
+	@for t in $(TESTS); do ./$$t || exit 1; done
 
-host/preview: host/preview.cpp core/sand.cpp core/sand.hpp
-	$(CXX) $(CXXFLAGS) host/preview.cpp core/sand.cpp -o $@
+host/test_%: host/test_%.cpp $(CORE) $(HDRS)
+	$(CXX) $(CXXFLAGS) $< $(CORE) -o $@
 
-preview: host/preview
-	mkdir -p host/frames
-	./host/preview host/frames
+sim: host/sim
+	./host/sim
+
+host/sim: host/sim.cpp $(CORE) $(HDRS)
+	$(CXX) $(CXXFLAGS) $$(sdl2-config --cflags) host/sim.cpp $(CORE) $$(sdl2-config --libs) -o $@
 
 build:
 	./scripts/idf set-target esp32s3
@@ -24,4 +27,4 @@ flash:
 	PORT=$(PORT) ./scripts/idf -p $(PORT) flash
 
 clean:
-	rm -rf build host/test_sand host/preview host/frames
+	rm -rf build $(TESTS) host/sim host/out
