@@ -75,7 +75,7 @@ int Sand::upstream(Gravity g) const {
 bool Sand::move(int x, int y, int nx, int ny) {
     if (!inside(nx, ny) || cells_[index(nx, ny)]) return false;
     // One grain per token may enter the neck row, which is what sets the pace.
-    if (ny == kCenter) {
+    if (ny == kCenter && y != kCenter) {
         if (tokens_ < 1.0f) return false;
         tokens_ -= 1.0f;
     }
@@ -84,15 +84,23 @@ bool Sand::move(int x, int y, int nx, int ny) {
     return true;
 }
 
-void Sand::settle(int x, int y, int dir) {
+void Sand::settle(int x, int y, int dir, int lateral) {
     const int ny = y + dir;
+    // Under tilt a fifth of the falling grains take the downhill diagonal even when
+    // straight down is free, which is what bends a stream sideways.
+    if (lateral && next() % 5 == 0 && move(x, y, x + lateral, ny)) return;
     if (move(x, y, x, ny)) return;
+    if (lateral) {
+        if (move(x, y, x + lateral, ny)) return;
+        if (next() & 1) move(x, y, x + lateral, y);
+        return;
+    }
     const int side = (next() & 1) ? 1 : -1;
     if (move(x, y, x + side, ny)) return;
     move(x, y, x - side, ny);
 }
 
-void Sand::step(float dt, Gravity g) {
+void Sand::step(float dt, Gravity g, int lateral) {
     // Capped at two, not one: with a cap of one the fractional remainder is thrown
     // away every step and a 60 Hz loop passes grains at about 60% of the set rate.
     tokens_ = std::min(2.0f, tokens_ + dt / interval_);
@@ -104,7 +112,19 @@ void Sand::step(float dt, Gravity g) {
     for (int y = start; y != stop; y -= dir) {
         for (int i = 0; i < kGrid; ++i) {
             const int x = flip_ ? kGrid - 1 - i : i;
-            if (cells_[index(x, y)]) settle(x, y, dir);
+            if (cells_[index(x, y)]) settle(x, y, dir, lateral);
+        }
+    }
+}
+
+void Sand::stir(int percent) {
+    for (int y = 0; y < kGrid; ++y) {
+        for (int x = 0; x < kGrid; ++x) {
+            if (!cells_[index(x, y)] || int(next() % 100) >= percent) continue;
+            const uint32_t r = next();
+            const int dx = int(r % 3) - 1;
+            const int dy = int((r >> 8) % 3) - 1;
+            if (dx || dy) move(x, y, x + dx, y + dy);
         }
     }
 }

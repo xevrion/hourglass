@@ -133,7 +133,41 @@ static void test_edges() {
     CHECK(s.total() == kGrains, "grains lost on edge steps");
 }
 
+static float far_chamber_mean_x(int lateral) {
+    Sand s;
+    s.set_interval(0.05f);
+    s.fill(Gravity::Down);
+    for (int i = 0; i < 600; ++i) s.step(kDt, Gravity::Up, lateral);
+    long sum = 0, n = 0;
+    for (int y = 0; y < kCenter; ++y)
+        for (int x = 0; x < kGrid; ++x)
+            if (s.shade(x, y)) sum += x, ++n;
+    return n ? float(sum) / float(n) : 0.0f;
+}
+
+static void test_tilt_bends_the_stream() {
+    const float level = far_chamber_mean_x(0);
+    const float left = far_chamber_mean_x(-1), right = far_chamber_mean_x(1);
+    CHECK(level > kCenter - 2.0f && level < kCenter + 2.0f, "untilted sand should land centred, got %.1f", level);
+    CHECK(left < level - 4.0f, "tilting left should shift the pile left: %.1f vs %.1f", left, level);
+    CHECK(right > level + 4.0f, "tilting right should shift the pile right: %.1f vs %.1f", right, level);
+}
+
+static void test_stir_cannot_cheat_time() {
+    Sand s;
+    s.set_interval(1000.0f);
+    s.fill(Gravity::Down);
+    for (int i = 0; i < 300; ++i) {
+        s.stir(80);
+        s.step(kDt, Gravity::Down);
+    }
+    CHECK(s.total() == kGrains, "stir lost grains: %d", s.total());
+    CHECK(s.upstream(Gravity::Down) == 0, "stirring pushed %d grains through the neck", s.upstream(Gravity::Down));
+}
+
 int main() {
+    test_tilt_bends_the_stream();
+    test_stir_cannot_cheat_time();
     test_shape();
     test_fill();
     test_rests_without_flip();
