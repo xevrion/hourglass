@@ -20,6 +20,18 @@ void Session::restart(Gravity g) {
 void Session::cycle_preset(Gravity g) {
     preset_ = (preset_ + 1) % kPresetCount;
     dur_ = kPresets[preset_];
+    reset_all(g);
+}
+
+void Session::set_preset(int index, int completed, Gravity g) {
+    preset_ = (index % kPresetCount + kPresetCount) % kPresetCount;
+    dur_ = kPresets[preset_];
+    phase_ = Phase::Focus;
+    restart(g);
+    completed_ = completed < 0 ? 0 : completed;
+}
+
+void Session::reset_all(Gravity g) {
     phase_ = Phase::Focus;
     completed_ = 0;
     restart(g);

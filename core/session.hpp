@@ -27,10 +27,15 @@ public:
     void toggle_pause();
     void restart(Gravity g);
     void cycle_preset(Gravity g);
+    // Back to a fresh focus phase with no finished sessions counted.
+    void reset_all(Gravity g);
 
     State state() const { return state_; }
     Phase phase() const { return phase_; }
     int completed() const { return completed_; }
+    int preset() const { return preset_; }
+    // For restoring saved settings at boot.
+    void set_preset(int index, int completed, Gravity g);
     float since_done() const { return since_done_; }
     float total_seconds() const { return phase_ == Phase::Focus ? dur_.focus : dur_.rest; }
     float remaining_seconds(Gravity g) const;

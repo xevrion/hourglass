@@ -1,9 +1,9 @@
 CXX ?= g++
 CXXFLAGS ?= -std=c++17 -O2 -Wall -Wextra -Icore
 
-CORE := core/sand.cpp core/session.cpp core/font.cpp core/scene.cpp
+CORE := core/sand.cpp core/session.cpp core/font.cpp core/scene.cpp core/menu.cpp
 HDRS := $(wildcard core/*.hpp)
-TESTS := host/test_sand host/test_session host/test_scene
+TESTS := host/test_sand host/test_session host/test_scene host/test_menu
 
 .PHONY: test sim build flash clean
 
