@@ -10,6 +10,9 @@
 
 namespace hg {
 
+// View::battery when there is no battery fitted but the board is running from the cable.
+constexpr int kOnUsb = -2;
+
 struct View {
     const Sand* sand;
     State state;
@@ -19,7 +22,7 @@ struct View {
     float progress;   // 0..1 of the phase used up
     int completed;    // focus sessions finished
     float done_t;     // seconds since the phase ended
-    int battery;      // percent, or -1 when there is no battery to show
+    int battery;      // percent, kOnUsb, or -1 to show nothing
     bool charging;
 };
 

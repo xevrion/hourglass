@@ -6,9 +6,10 @@
 // as the touch panel and tilt sensor.
 class Battery {
 public:
+    enum class Reading { Level, NoBattery, Error };
+
     bool begin();
-    // False when there is no battery fitted or the chip does not answer.
-    bool read(int& percent, bool& charging);
+    Reading read(int& percent, bool& charging);
 
 private:
     bool reg_read(uint8_t reg, uint8_t& value);

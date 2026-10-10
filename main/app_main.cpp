@@ -157,7 +157,11 @@ extern "C" void app_main() {
 
         if (have_battery && frame % kBatteryEvery == 0) {
             int percent = 0;
-            level = battery.read(percent, charging) ? percent : -1;
+            switch (battery.read(percent, charging)) {
+            case Battery::Reading::Level: level = percent; break;
+            case Battery::Reading::NoBattery: level = hg::kOnUsb, charging = false; break;
+            default: level = -1; break;
+            }
         }
 
         const hg::View view{&sand, session.state(), session.phase(), gravity, session.remaining_seconds(gravity),

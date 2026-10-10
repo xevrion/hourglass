@@ -126,6 +126,7 @@ void Scene::update_text(Surface& sf, const View& v) {
 
     char power[8] = "";
     if (v.battery >= 0) std::snprintf(power, sizeof power, "%d%%%s", std::min(v.battery, 100), v.charging ? "+" : "");
+    else if (v.battery == kOnUsb) std::snprintf(power, sizeof power, "USB");
 
     char sig[96];
     std::snprintf(sig, sizeof sig, "%s|%s|%s|%d|%d|%d|%s", clock, label, status, dots, flipped, int(v.phase), power);
@@ -152,7 +153,9 @@ void Scene::update_text(Surface& sf, const View& v) {
     const int lw = text_width(label, 3);
     put(180 - lw, cy - 10, label, 3, kDim);
 
-    const uint16_t power_colour = v.charging ? rgb565(90, 220, 120) : v.battery <= 15 ? rgb565(255, 90, 90) : kDim;
+    uint16_t power_colour = kDim;
+    if (v.battery >= 0 && v.charging) power_colour = rgb565(90, 220, 120);
+    else if (v.battery >= 0 && v.battery <= 15) power_colour = rgb565(255, 90, 90);
     put(180 - text_width(power, 3), cy + 46, power, 3, power_colour);
 
     for (int i = 0; i < 4; ++i) {

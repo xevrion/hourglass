@@ -39,17 +39,17 @@ bool Battery::reg_write(uint8_t reg, uint8_t value) {
     return dev_ && i2c_master_transmit(dev_, buf, 2, 100) == ESP_OK;
 }
 
-bool Battery::read(int& percent, bool& charging) {
+Battery::Reading Battery::read(int& percent, bool& charging) {
     uint8_t adc = 0, status1 = 0, status2 = 0, soc = 0;
     if (!adc_on_) {
-        if (!reg_read(kAdcEnable, adc)) return false;
-        if (!(adc & 0x01) && !reg_write(kAdcEnable, adc | 0x01)) return false;
+        if (!reg_read(kAdcEnable, adc)) return Reading::Error;
+        if (!(adc & 0x01) && !reg_write(kAdcEnable, adc | 0x01)) return Reading::Error;
         adc_on_ = true;
     }
-    if (!reg_read(kStatus1, status1) || !reg_read(kStatus2, status2)) return false;
+    if (!reg_read(kStatus1, status1) || !reg_read(kStatus2, status2)) return Reading::Error;
     charging = ((status2 >> 5) & 0x03) == 0x01;
-    if (!(status1 & (1 << 3))) return false;
-    if (!reg_read(kPercent, soc)) return false;
+    if (!(status1 & (1 << 3))) return Reading::NoBattery;
+    if (!reg_read(kPercent, soc)) return Reading::Error;
     percent = soc > 100 ? 100 : soc;
-    return true;
+    return Reading::Level;
 }

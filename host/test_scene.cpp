@@ -59,7 +59,7 @@ static void test_incremental_matches_fresh() {
         session.update(kDt, g, lateral);
 
         // The battery drains, hits the low colour, then plugs in, so every text state gets exercised.
-        const int battery = frame < 500 ? 100 - frame / 20 : frame < 900 ? 12 : -1;
+        const int battery = frame < 500 ? 100 - frame / 20 : frame < 800 ? 12 : frame < 1100 ? kOnUsb : -1;
         const View v = view_of(sand, session, g, battery, frame >= 1000);
         scene.draw(live_sf, v);
 
