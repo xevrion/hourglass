@@ -30,6 +30,7 @@ struct Options {
     float speed = 1.0f;
     int scale = 2;
     std::string shots;
+    std::string frames;
 };
 
 Options parse(int argc, char** argv) {
@@ -42,6 +43,7 @@ Options parse(int argc, char** argv) {
         else if (a == "--speed") o.speed = float(std::atof(next()));
         else if (a == "--scale") o.scale = std::atoi(next());
         else if (a == "--shots") o.shots = next();
+        else if (a == "--frames") o.frames = next();
     }
     return o;
 }
@@ -185,6 +187,27 @@ int run_shots(const Options& o) {
     return 0;
 }
 
+// One focus phase from rest to DONE, a frame every few steps, for an animated preview.
+int run_frames(const Options& o) {
+    Sim sim(o);
+    int n = 0, tick = 0;
+    auto grab = [&]() {
+        char name[256];
+        std::snprintf(name, sizeof name, "%s/f%04d.ppm", o.frames.c_str(), n++);
+        sim.write_ppm(name);
+    };
+    for (int i = 0; i < 20; ++i) sim.advance(false, 0, 0), grab();
+    sim.gravity = Gravity::Up;
+    int guard = 0;
+    while (sim.session.state() != State::Done && ++guard < 20000) {
+        sim.advance(false, 0, 0);
+        if (++tick % 3 == 0) grab();
+    }
+    for (int i = 0; i < 40; ++i) sim.advance(false, 0, 0), grab();
+    std::printf("%d frames\n", n);
+    return 0;
+}
+
 int run_window(const Options& o) {
     if (SDL_Init(SDL_INIT_VIDEO) != 0) {
         std::fprintf(stderr, "SDL: %s\n", SDL_GetError());
@@ -246,5 +269,6 @@ int run_window(const Options& o) {
 
 int main(int argc, char** argv) {
     const Options o = parse(argc, argv);
+    if (!o.frames.empty()) return run_frames(o);
     return o.shots.empty() ? run_window(o) : run_shots(o);
 }
