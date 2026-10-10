@@ -1,5 +1,7 @@
 # hourglass
 
+![A 40 second focus phase running in the simulator](docs/demo.gif)
+
 A pomodoro timer that is an hourglass. It runs on the Waveshare ESP32-S3-Touch-AMOLED-1.75C, a round 466x466 AMOLED with a tilt sensor, and the sand really falls: flip the board and the sand in the new top chamber starts running through the neck, so the time left is the sand left.
 
 ## Using it
@@ -26,7 +28,11 @@ Everything under `core/` (sand, session, scene, font, gestures) has no dependenc
 
     make sim
 
-Needs SDL2. F flips the glass, the arrow keys tilt it, S shakes it, and the mouse is the touchscreen. `./host/sim --focus 40 --rest 20` runs short phases, and `--shots dir` writes frames of a scripted run as PPM files.
+Needs SDL2. F flips the glass, the arrow keys tilt it, S shakes it, and the mouse is the touchscreen. `./host/sim --focus 40 --rest 20` runs short phases, `--shots dir` writes frames of a scripted run as PPM files, and `--frames dir` dumps one whole phase for a GIF. The preview above was made that way, with the frames after the flip turned half a revolution to show what you see when you hold the board.
+
+![The long-press menu](docs/menu.png)
+
+The picture above is the menu in the simulator. The simulator draws the same pixels the panel gets, so it is a faithful preview, but it is not a photo of the board.
 
 ## Tests
 
