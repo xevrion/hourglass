@@ -19,6 +19,8 @@ struct View {
     float progress;   // 0..1 of the phase used up
     int completed;    // focus sessions finished
     float done_t;     // seconds since the phase ended
+    int battery;      // percent, or -1 when there is no battery to show
+    bool charging;
 };
 
 // Draws the glass, the sand, the rim of ticks and the clock into a Surface. Only
@@ -27,6 +29,8 @@ class Scene {
 public:
     Scene();
     void draw(Surface& sf, const View& v);
+    // Forces a full repaint on the next draw, for when something else used the surface.
+    void invalidate() { first_ = true; }
 
 private:
     using Pixels = std::vector<std::pair<int16_t, int16_t>>;

@@ -2,6 +2,7 @@
 #include <cstring>
 #include <vector>
 
+#include "menu.hpp"
 #include "scene.hpp"
 
 using namespace hg;
@@ -20,8 +21,8 @@ static int failures = 0;
 
 constexpr float kDt = 1.0f / 60.0f;
 
-static View view_of(const Sand& sand, const Session& s, Gravity g) {
-    return {&sand, s.state(), s.phase(), g, s.remaining_seconds(g), s.progress(g), s.completed(), s.since_done()};
+static View view_of(const Sand& sand, const Session& s, Gravity g, int battery = 87, bool charging = false) {
+    return {&sand, s.state(), s.phase(), g, s.remaining_seconds(g), s.progress(g), s.completed(), s.since_done(), battery, charging};
 }
 
 static int differing_pixels(const std::vector<uint16_t>& a, const std::vector<uint16_t>& b, int* first) {
@@ -57,7 +58,9 @@ static void test_incremental_matches_fresh() {
         session.update(kDt, g, lateral);
         session.update(kDt, g, lateral);
 
-        const View v = view_of(sand, session, g);
+        // The battery drains, hits the low colour, then plugs in, so every text state gets exercised.
+        const int battery = frame < 500 ? 100 - frame / 20 : frame < 900 ? 12 : -1;
+        const View v = view_of(sand, session, g, battery, frame >= 1000);
         scene.draw(live_sf, v);
 
         Rect r;
@@ -80,6 +83,40 @@ static void test_incremental_matches_fresh() {
     CHECK(compared > 50, "compared only %d frames", compared);
 }
 
+// After a menu has covered the screen, invalidate() must bring back exactly the picture a fresh scene paints.
+static void test_menu_cover_and_restore() {
+    Sand sand;
+    Session session(sand, {40.0f, 20.0f});
+    session.restart(Gravity::Down);
+    std::vector<uint16_t> live(kScreen * kScreen, 0), fresh(kScreen * kScreen, 0);
+    Surface live_sf(reinterpret_cast<uint8_t*>(live.data()), kScreen, kScreen, kScreen * 2);
+    Scene scene;
+    for (int i = 0; i < 90; ++i) {
+        session.update(kDt, Gravity::Up, 0);
+        scene.draw(live_sf, view_of(sand, session, Gravity::Up));
+    }
+
+    Menu menu;
+    menu.open(true);
+    menu.update(false, 0, 0, 0.03f);
+    menu.update(true, 233, 233, 0.03f);
+    menu.update(true, 233, 233 + 70, 0.03f);
+    menu.update(false, 233, 233 + 70, 0.03f);
+    for (int i = 0; i < 30; ++i) menu.update(false, 0, 0, 0.03f);
+    menu.draw(live_sf, rgb565(255, 176, 46));
+
+    menu.close();
+    scene.invalidate();
+    scene.draw(live_sf, view_of(sand, session, Gravity::Up));
+
+    Surface fresh_sf(reinterpret_cast<uint8_t*>(fresh.data()), kScreen, kScreen, kScreen * 2);
+    Scene full;
+    full.draw(fresh_sf, view_of(sand, session, Gravity::Up));
+    int first = 0;
+    const int bad = differing_pixels(live, fresh, &first);
+    CHECK(bad == 0, "%d pixels left over from the menu, first at %d,%d", bad, first % kScreen, first / kScreen);
+}
+
 static void test_surface_dirty_alignment() {
     std::vector<uint16_t> buf(100 * 100, 0);
     Surface sf(reinterpret_cast<uint8_t*>(buf.data()), 100, 100, 200);
@@ -96,6 +133,7 @@ static void test_surface_dirty_alignment() {
 
 int main() {
     test_surface_dirty_alignment();
+    test_menu_cover_and_restore();
     test_incremental_matches_fresh();
     if (failures) {
         std::printf("%d check(s) failed\n", failures);

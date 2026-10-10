@@ -124,8 +124,11 @@ void Scene::update_text(Surface& sf, const View& v) {
     const char* status = v.state == State::Paused ? "PAUSED" : v.state == State::Done ? "DONE" : v.state == State::Ready ? "FLIP" : "";
     const int dots = v.completed == 0 ? 0 : (v.completed - 1) % 4 + 1;
 
-    char sig[64];
-    std::snprintf(sig, sizeof sig, "%s|%s|%s|%d|%d|%d", clock, label, status, dots, flipped, int(v.phase));
+    char power[8] = "";
+    if (v.battery >= 0) std::snprintf(power, sizeof power, "%d%%%s", std::min(v.battery, 100), v.charging ? "+" : "");
+
+    char sig[96];
+    std::snprintf(sig, sizeof sig, "%s|%s|%s|%d|%d|%d|%s", clock, label, status, dots, flipped, int(v.phase), power);
     if (text_sig_ == sig) return;
     text_sig_ = sig;
 
@@ -148,6 +151,9 @@ void Scene::update_text(Surface& sf, const View& v) {
     put(288, cy + 30, status, 3, kDim);
     const int lw = text_width(label, 3);
     put(180 - lw, cy - 10, label, 3, kDim);
+
+    const uint16_t power_colour = v.charging ? rgb565(90, 220, 120) : v.battery <= 15 ? rgb565(255, 90, 90) : kDim;
+    put(180 - text_width(power, 3), cy + 46, power, 3, power_colour);
 
     for (int i = 0; i < 4; ++i) {
         const Rect r = place(180 - (4 - i) * 15 + 6, cy + 24, 9, 9, flipped);
