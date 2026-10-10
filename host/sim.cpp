@@ -15,6 +15,7 @@
 #include <vector>
 
 #include "gesture.hpp"
+#include "menu.hpp"
 #include "scene.hpp"
 #include "session.hpp"
 
@@ -61,10 +62,13 @@ struct Sim {
     Session session;
     Scene scene;
     Gesture gesture;
+    Menu menu;
     std::vector<uint16_t> fb;
     Surface surface;
     Gravity gravity = Gravity::Down;
     int lateral = 0;
+    int battery = 87;
+    bool charging = false;
     float speed;
 
     explicit Sim(const Options& o)
@@ -73,12 +77,28 @@ struct Sim {
         session.restart(gravity);
     }
 
+    void apply(MenuAction a) {
+        switch (a) {
+        case MenuAction::Restart: session.restart(gravity); break;
+        case MenuAction::ResetAll: session.reset_all(gravity); break;
+        case MenuAction::Preset0: session.set_preset(0, 0, gravity); break;
+        case MenuAction::Preset1: session.set_preset(1, 0, gravity); break;
+        case MenuAction::Preset2: session.set_preset(2, 0, gravity); break;
+        case MenuAction::Preset3: session.set_preset(3, 0, gravity); break;
+        case MenuAction::Brightness: std::printf("brightness would change here\n"); break;
+        default: break;
+        }
+        if (!menu.is_open()) scene.invalidate();
+    }
+
     void advance(bool down, int x, int y) {
-        const Tap tap = gesture.update(down, x, y, 1.0f / 30.0f);
-        if (tap == Tap::Short) session.toggle_pause();
-        if (tap == Tap::Long) {
-            if (session.state() == State::Ready) session.cycle_preset(gravity);
-            else session.restart(gravity);
+        const bool flipped = gravity == Gravity::Up;
+        if (menu.is_open()) {
+            apply(menu.update(down, x, y, 1.0f / 30.0f));
+        } else {
+            const Tap tap = gesture.update(down, x, y, 1.0f / 30.0f);
+            if (tap == Tap::Short) session.toggle_pause();
+            if (tap == Tap::Long) menu.open(flipped);
         }
         session.update(kStep * speed, gravity, lateral);
         session.update(kStep * speed, gravity, lateral);
@@ -87,10 +107,29 @@ struct Sim {
 
     void draw() {
         View v{&sand, session.state(), session.phase(), gravity, session.remaining_seconds(gravity),
-               session.progress(gravity), session.completed(), session.since_done()};
-        scene.draw(surface, v);
+               session.progress(gravity), session.completed(), session.since_done(), battery, charging};
+        if (menu.is_open()) {
+            const bool focus = session.phase() == Phase::Focus;
+            menu.draw(surface, focus ? rgb565(255, 176, 46) : rgb565(64, 224, 200));
+        } else {
+            scene.draw(surface, v);
+        }
         Rect ignored;
         surface.take_dirty(ignored);
+    }
+
+    // Opens the menu and scrolls it to an item, the way a swipe would.
+    void show_menu(int item) {
+        menu.open(gravity == Gravity::Up);
+        menu.update(false, 0, 0, 0.03f);
+        const int y0 = kScreen / 2;
+        if (item > 0) {
+            menu.update(true, 233, y0, 0.03f);
+            for (int i = 1; i <= 8; ++i) menu.update(true, 233, y0 - i * item * Menu::kItemH / 8, 0.03f);
+            menu.update(false, 233, y0 - item * Menu::kItemH, 0.03f);
+            for (int i = 0; i < 40; ++i) menu.update(false, 0, 0, 0.03f);
+        }
+        draw();
     }
 
     void write_ppm(const std::string& path) {
@@ -117,7 +156,7 @@ int run_shots(const Options& o) {
     const std::vector<Beat> beats = {
         {0.5f, "ready"}, {1.5f, "flip"},  {8.0f, "run"},     {20.0f, "run"},     {32.0f, "run"},
         {44.0f, "run"},  {56.0f, "done"}, {58.0f, "flipdown"}, {68.0f, "break"},  {76.0f, "pause"},
-        {79.0f, "shot"}, {80.0f, "resume"}, {110.0f, "done"},
+        {79.0f, "shot"}, {80.0f, "resume"}, {110.0f, "done"}, {111.0f, "menu0"}, {112.0f, "menu3"}, {113.0f, "menuclose"},
     };
     float t = 0.0f;
     int shot = 0;
@@ -131,7 +170,13 @@ int run_shots(const Options& o) {
         if (what == "flipdown") sim.gravity = Gravity::Down;
         if (what == "pause") sim.session.toggle_pause();
         if (what == "resume") sim.session.toggle_pause();
-        sim.advance(false, 0, 0);
+        if (what == "menu0") sim.show_menu(0);
+        else if (what == "menu3") sim.show_menu(3);
+        else if (what == "menuclose") {
+            sim.menu.close();
+            sim.scene.invalidate();
+            sim.advance(false, 0, 0);
+        } else sim.advance(false, 0, 0);
         char name[256];
         std::snprintf(name, sizeof name, "%s/shot%02d_%s.ppm", o.shots.c_str(), shot++, b.what);
         sim.write_ppm(name);
@@ -170,6 +215,8 @@ int run_window(const Options& o) {
                 case SDLK_LEFT: sim.lateral = sim.lateral == -1 ? 0 : -1; break;
                 case SDLK_RIGHT: sim.lateral = sim.lateral == 1 ? 0 : 1; break;
                 case SDLK_s: sim.sand.stir(60); break;
+                case SDLK_c: sim.charging = !sim.charging; break;
+                case SDLK_b: sim.battery = sim.battery > 60 ? 50 : sim.battery > 20 ? 12 : 100; break;
                 default: break;
                 }
             }
