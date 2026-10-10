@@ -9,8 +9,10 @@ Hold it upright with the USB-C cable at the bottom. The sand rests low and the c
 - **Flip it** to start. The clock counts down while the sand runs, and the rim fills one tick at a time. The text turns around so it still reads upright.
 - **When the last grain drops** the rim pulses and it says DONE. Flip it again to start the break (amber is focus, teal is break). Four dots under the label count finished focus sessions.
 - **Tap** to pause and resume.
-- **Long-press** to restart the phase. When it is ready and the sand is at rest, a long-press steps through 25/5, 50/10, 15/3 and a 45 second demo.
+- **Long-press** to open the menu. Swipe up and down to scroll the wheel, tap the highlighted row to choose, tap a neighbouring row to step to it. It has Resume, Restart (this phase), Reset all (back to a fresh focus phase with no sessions counted), the presets 25/5, 50/10, 15/3 and a 45 second demo, and Brightness. An untouched menu closes itself after 8 seconds.
 - **Shake** it to stir the sand. **Tilt** it sideways and the stream leans that way.
+
+It works without a laptop. The battery percentage sits under the session dots (green with a plus while charging, red when low) and stays hidden if no battery is connected. The chosen preset, the finished sessions and the brightness are saved, so they are still there after a power cycle, and the screen dims after 30 seconds of being left alone.
 
 ## How the sand works
 
